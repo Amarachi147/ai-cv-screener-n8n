@@ -1,0 +1,442 @@
+{
+  "name": "CV Screener",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## CV Screener\n\n**Before you run it:**\n1. Create a Google Sheet with a tab called Applicants. Row 1 headings: Date, Name, Email, Job, Score, Status, Summary, Strengths, Gaps.\n2. Open each node showing a red warning and choose your credential (OpenAI, Google Sheets, Gmail).\n3. In Save to Sheet, choose your document and the Applicants tab.\n4. In Extract CV Text, make sure the Input Binary Field matches the CV file name on the Binary tab of the CV Form output.\n5. In Job Details, change the job title, the requirements and the pass mark to your own job.\n6. In Email Qualified Candidate, replace [YOUR COMPANY] with your company name.\n\nTest with your own email address on the form so that you receive the email. Use only fictional or consented CVs.",
+        "height": 520,
+        "width": 520
+      },
+      "id": "n0",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -300,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Apply: Customer Service Representative",
+        "formDescription": "Fill in your details and upload your CV as a PDF. By submitting, you agree that we may use your CV to assess your application.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Full name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "CV",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n1",
+      "name": "CV Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        300,
+        200
+      ],
+      "webhookId": "b3a8f1c2-6d4e-4a57-8c19-2e5f7d9a0b31"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "CV",
+        "options": {}
+      },
+      "id": "n2",
+      "name": "Extract CV Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        520,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "jobTitle",
+              "value": "Customer Service Representative",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "jobRequirements",
+              "value": "About the role: BrightPath Logistics (a fictional company) needs a Customer Service Representative based in Enugu or working remotely.\nRequirements:\n- At least 2 years of customer support or customer service experience\n- Excellent written and spoken English\n- Experience handling customer complaints\n- Experience with CRM or helpdesk tools such as Zendesk or Freshdesk\n- Comfortable using Google Sheets or Excel\n- Ability to work calmly and solve problems",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "passMark",
+              "value": 70,
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "n3",
+      "name": "Job Details",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        740,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "text": "=JOB TITLE: {{ $json.jobTitle }}\n\nJOB REQUIREMENTS:\n{{ $json.jobRequirements }}\n\nCV TEXT:\n{{ $json.text }}",
+        "schemaType": "fromAttributes",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "score",
+              "type": "number",
+              "description": "A score from 0 to 100 showing how well the CV matches the job requirements. 90 to 100 is an excellent match, 70 to 89 is a good match, 40 to 69 is a partial match, below 40 is a poor match. Base the score only on skills, experience and qualifications.",
+              "required": true
+            },
+            {
+              "name": "summary",
+              "type": "string",
+              "description": "Two short sentences explaining the score.",
+              "required": true
+            },
+            {
+              "name": "strengths",
+              "type": "string",
+              "description": "The top three strengths that match the job, separated by commas.",
+              "required": true
+            },
+            {
+              "name": "gaps",
+              "type": "string",
+              "description": "The most important missing requirements, separated by commas. Write None if there are no gaps.",
+              "required": true
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "You are a fair and careful recruiter. Compare the CV with the job requirements and return the requested fields. Use only information that is written in the CV. Do not guess. If something is not in the CV, treat it as missing. Ignore name, gender, age, religion, ethnicity, nationality, marital status and photos."
+        }
+      },
+      "id": "n4",
+      "name": "Score CV",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "n5",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        980,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "PASTE_YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Applicants",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $now.toFormat('yyyy-MM-dd HH:mm') }}",
+            "Name": "={{ $('CV Form').item.json['Full name'] }}",
+            "Email": "={{ $('CV Form').item.json['Email'] }}",
+            "Job": "={{ $('Job Details').item.json.jobTitle }}",
+            "Score": "={{ $json.output.score }}",
+            "Status": "={{ $json.output.score >= $('Job Details').item.json.passMark ? 'Qualified' : 'Not qualified' }}",
+            "Summary": "={{ $json.output.summary }}",
+            "Strengths": "={{ $json.output.strengths }}",
+            "Gaps": "={{ $json.output.gaps }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Job",
+              "displayName": "Job",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Strengths",
+              "displayName": "Strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Gaps",
+              "displayName": "Gaps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "n6",
+      "name": "Save to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1300,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $('Score CV').item.json.output.score }}",
+              "rightValue": "={{ $('Job Details').item.json.passMark }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "n7",
+      "name": "Qualified?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1520,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('CV Form').item.json['Email'] }}",
+        "subject": "=Your application for {{ $('Job Details').item.json.jobTitle }}",
+        "emailType": "text",
+        "message": "=Dear {{ $('CV Form').item.json['Full name'] }},\n\nThank you for applying for the {{ $('Job Details').item.json.jobTitle }} position at [YOUR COMPANY].\n\nWe are pleased to let you know that your application has been shortlisted. We will get back to you with the next step soon.\n\nKind regards,\nThe Recruitment Team\n[YOUR COMPANY]",
+        "options": {}
+      },
+      "id": "n8",
+      "name": "Email Qualified Candidate",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1760,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "CV Form": {
+      "main": [
+        [
+          {
+            "node": "Extract CV Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract CV Text": {
+      "main": [
+        [
+          {
+            "node": "Job Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Details": {
+      "main": [
+        [
+          {
+            "node": "Score CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score CV": {
+      "main": [
+        [
+          {
+            "node": "Save to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Sheet": {
+      "main": [
+        [
+          {
+            "node": "Qualified?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualified?": {
+      "main": [
+        [
+          {
+            "node": "Email Qualified Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Score CV",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
